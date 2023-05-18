@@ -1,4 +1,4 @@
-import io
+import matplotlib
 import pandas as pd
 
 INCIDENT_CODES = {
@@ -12,22 +12,21 @@ INCIDENT_CODES = {
     800: 'Severe Weather & Natural Disaster Group.'
 }
 
+# agg is a backend that is non-interactive; it can only write to files
+matplotlib.use('agg')
+
 # incident_data should be an InputStream (e.g. from Azure BlobStorageTrigger), or path to a CSV file
 def generate_report(incident_data):
     """Generate report(s) from incident data
 
     Parameters:
-    incident_data (azure.functions.InputStream, str): Azure Functions InputStream or path to CSV file
+    incident_data (io.StringIO, str): StringIO or path to CSV file
 
     Returns:
     list of str: List of paths to generated report(s)
     """
-    if type(incident_data) != str:
-        blob_data = io.StringIO(incident_data)
-    else:
-        blob_data = incident_data
     use_columns = ['IncidentNumber', 'IncidentDate', 'IncidentTime', 'IncidentType']
-    df = pd.read_csv(blob_data, usecols=use_columns,
+    df = pd.read_csv(incident_data, usecols=use_columns,
                      parse_dates={'IncidentDateTime':['IncidentDate', 'IncidentTime']},
                      date_format='%d/%m/%Y %H:%M:%S')
     df['IncidentCode'] = df['IncidentType'].str.split().str[0]
