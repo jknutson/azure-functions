@@ -35,8 +35,11 @@ def generate_report(incident_data):
     df['IncidentSeries'] = (df['IncidentCode'].astype(int) / 100).astype(int) * 100
     df['IncidentCategory'] = df['IncidentSeries'].map(INCIDENT_CODES)
 
+    report_path = 'incidents.pdf'
     fig=df['IncidentCategory'].value_counts().plot(kind='pie').get_figure()
-    fig.savefig('fig.png')
+    fig.savefig(report_path)
+
+    return [report_path]
 
 if __name__ == "__main__":
     import sys

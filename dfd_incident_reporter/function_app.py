@@ -18,6 +18,10 @@ app = func.FunctionApp()
 @app.blob_input(arg_name="inputblob",
                 path="dfd-uploads/incidents.csv",
                 connection="")
-def test_function(myblob: func.InputStream, inputblob: str):
-    reports.generate_report(incident_data=myblob)
-    logging.info(df)
+@app.blob_output(arg_name="outputblob",
+                path="dfd-reports/incidents.pdf",
+                connection="")
+def test_function(myblob: func.InputStream, inputblob: str, outputblob: func.Out[str]):
+    generated_reports = reports.generate_report(incident_data=myblob)
+    logging.info(f"generated reports: {generated_reports}")
+    outputblob.set(generated_reports[0])
