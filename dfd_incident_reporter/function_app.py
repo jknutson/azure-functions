@@ -1,12 +1,10 @@
 import azure.functions as func
-# import csv
 import io
 import logging
-import matplotlib.pyplot as plt
-import pandas as pd
 from azure.storage.blob import BlobClient, BlobServiceClient
 from azure.identity import DefaultAzureCredential
 
+# relative import(s)
 import reports
 
 app = func.FunctionApp()
@@ -22,6 +20,7 @@ app = func.FunctionApp()
                 path="dfd-reports/incidents.pdf",
                 connection="")
 def test_function(myblob: func.InputStream, inputblob: str, outputblob: func.Out[str]):
-    generated_reports = reports.generate_report(incident_data=myblob)
+    incident_data = io.StringIO(inputblob)
+    generated_reports = reports.generate_report(incident_data=incident_data)
     logging.info(f"generated reports: {generated_reports}")
-    outputblob.set(generated_reports[0])
+    outputblob.set(open(generated_reports[0].read(())
