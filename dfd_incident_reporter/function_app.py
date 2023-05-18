@@ -23,4 +23,4 @@ def test_function(myblob: func.InputStream, inputblob: str, outputblob: func.Out
     incident_data = io.StringIO(inputblob)
     generated_reports = reports.generate_report(incident_data=incident_data)
     logging.info(f"generated reports: {generated_reports}")
-    outputblob.set(open(generated_reports[0].read(())
+    outputblob.set(open(generated_reports[0], 'rb').read())
