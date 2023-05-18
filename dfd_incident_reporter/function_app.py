@@ -9,7 +9,7 @@ import reports
 
 app = func.FunctionApp()
 
-@app.function_name(name="BlobTrigger1")
+@app.function_name(name="BlobReportsTrigger")
 @app.blob_trigger(arg_name="myblob",
                   path="dfd-uploads/incidents.csv",
                   connection="")
@@ -19,7 +19,7 @@ app = func.FunctionApp()
 @app.blob_output(arg_name="outputblob",
                 path="dfd-reports/incidents.pdf",
                 connection="")
-def test_function(myblob: func.InputStream, inputblob: str, outputblob: func.Out[str]):
+def blob_reports_function(myblob: func.InputStream, inputblob: str, outputblob: func.Out[str]):
     incident_data = io.StringIO(inputblob)
     generated_reports = reports.generate_report(incident_data=incident_data)
     logging.info(f"generated reports: {generated_reports}")
