@@ -1,3 +1,4 @@
+import calendar
 import matplotlib
 import pandas as pd
 from matplotlib.ticker import NullFormatter
@@ -76,6 +77,7 @@ class Reporter:
 
         month_report_path = 'incidents_month.pdf'
         dg = df.groupby(df.IncidentDateTime.dt.month)['IncidentCategory'].value_counts().unstack().fillna(0)
+        dg.rename(index=lambda x: calendar.month_abbr[x], inplace=True)
         # print(dg.head())
         # print(dg.info())
         plot = dg.plot.bar(stacked=True, figsize=self.FIGSIZE)
