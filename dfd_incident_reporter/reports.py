@@ -1,5 +1,7 @@
 import matplotlib
 import pandas as pd
+from matplotlib.ticker import NullFormatter
+from matplotlib.dates import MonthLocator, DateFormatter
 
 INCIDENT_CODES = {
     100: 'Fire Group.',
@@ -15,8 +17,7 @@ INCIDENT_CODES = {
 # agg is a backend that is non-interactive; it can only write to files
 matplotlib.use('agg')
 
-# incident_data should be an InputStream (e.g. from Azure BlobStorageTrigger), or path to a CSV file
-def generate_report(incident_data):
+def generate_reports(incident_data):
     """Generate report(s) from incident data
 
     Parameters:
@@ -25,14 +26,32 @@ def generate_report(incident_data):
     Returns:
     list of str: List of paths to generated report(s)
     """
+
     use_columns = ['IncidentNumber', 'IncidentDate', 'IncidentTime', 'IncidentType']
     df = pd.read_csv(incident_data, usecols=use_columns,
                      parse_dates={'IncidentDateTime':['IncidentDate', 'IncidentTime']},
-                     date_format='%d/%m/%Y %H:%M:%S')
+                     date_format='%m/%d/%Y %H:%M:%S')
     df['IncidentCode'] = df['IncidentType'].str.split().str[0]
     df.dropna(subset=['IncidentType'], inplace=True)
     df['IncidentSeries'] = (df['IncidentCode'].astype(int) / 100).astype(int) * 100
     df['IncidentCategory'] = df['IncidentSeries'].map(INCIDENT_CODES)
+
+    reports = []
+    reports.extend(generate_summary_report(df))
+    reports.extend(generate_monthly_report(df))
+
+    return reports
+
+# incident_data should be an InputStream (e.g. from Azure BlobStorageTrigger), or path to a CSV file
+def generate_summary_report(df):
+    """Generate report(s) from dataframe
+
+    Parameters:
+    pandas.DataFrame: dataframe with incident data
+
+    Returns:
+    list of str: List of paths to generated report(s)
+    """
 
     report_path = 'incidents.pdf'
     fig=df['IncidentCategory'].value_counts().plot(kind='pie').get_figure()
@@ -40,9 +59,30 @@ def generate_report(incident_data):
 
     return [report_path]
 
+def generate_monthly_report(df):
+    """Generate monthly report(s) from datafram
+
+    Parameters:
+    pandas.DataFrame: dataframe with incident data
+
+    Returns:
+    list of str: List of paths to generated report(s)
+    """
+
+    month_report_path = 'incidents_month.pdf'
+    plot=df.groupby(df.IncidentDateTime.dt.month)['IncidentCategory'].value_counts().unstack().plot.bar(stacked=True)
+    # TODO: figure out why this only labels "Jan"
+    # plot.xaxis.set_major_locator(MonthLocator())
+    # plot.xaxis.set_major_formatter(DateFormatter('%b'))
+    fig=plot.get_figure()
+    fig.savefig(month_report_path)
+
+    return [month_report_path]
+
 if __name__ == "__main__":
     import sys
-    incident_csv = '/Users/john.knutson/Downloads/incidents.csv'
+    incident_csv = '/Users/john.knutson/Downloads/incidents_2022.csv'
     if len(sys.argv) > 1:
         incident_csv = sys.argv[1]
-    generate_report(incident_data=incident_csv)
+    reports = generate_reports(incident_data=incident_csv)
+    print(f"reports generated: {reports}")
