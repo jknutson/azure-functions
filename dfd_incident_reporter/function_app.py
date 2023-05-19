@@ -18,11 +18,16 @@ app = func.FunctionApp()
 @app.blob_input(arg_name="inputblob",
                 path=f"{UPLOADS_PREFIX}/incidents.csv",
                 connection="")
-@app.blob_output(arg_name="outputblob",
-                path=f"{REPORTS_PREFIX}/incidents.pdf",
+@app.blob_output(arg_name="outputblobsummary",
+                path=f"{REPORTS_PREFIX}/incidents_summary.pdf",
                 connection="")
-def test_function(myblob: func.InputStream, inputblob: str, outputblob: func.Out[str]):
+@app.blob_output(arg_name="outputblobmonthly",
+                path=f"{REPORTS_PREFIX}/incidents_monthly.pdf",
+                connection="")
+def test_function(myblob: func.InputStream, inputblob: str,
+                  outputblobsummary: func.Out[str], outputblobmonthly: func.Out[str]):
     incident_data = io.StringIO(inputblob)
-    generated_reports = reports.generate_report(incident_data=incident_data)
+    generated_reports = reports.generate_reports(incident_data=incident_data)
     logging.info(f"generated reports: {generated_reports}")
-    outputblob.set(open(generated_reports[0], 'rb').read())
+    outputblobsummary.set(open(generated_reports[0], 'rb').read())
+    outputblobmonthly.set(open(generated_reports[1], 'rb').read())
