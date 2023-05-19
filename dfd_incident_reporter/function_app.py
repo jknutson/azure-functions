@@ -4,7 +4,7 @@ import logging
 from azure.storage.blob import BlobClient, BlobServiceClient
 from azure.identity import DefaultAzureCredential
 # relative import(s)
-import reports
+from reports import Reporter
 
 UPLOADS_PREFIX="dfd-uploads"
 REPORTS_PREFIX="dfd-reports"
@@ -27,7 +27,9 @@ app = func.FunctionApp()
 def test_function(myblob: func.InputStream, inputblob: str,
                   outputblobsummary: func.Out[str], outputblobmonthly: func.Out[str]):
     incident_data = io.StringIO(inputblob)
-    generated_reports = reports.generate_reports(incident_data=incident_data)
-    logging.info(f"generated reports: {generated_reports}")
-    outputblobsummary.set(open(generated_reports[0], 'rb').read())
-    outputblobmonthly.set(open(generated_reports[1], 'rb').read())
+
+    reporter = Reporter(incident_data=incident_data)
+    reports = reporter.generate_reports()
+    logging.info(f"generated reports: {reports}")
+    outputblobsummary.set(open(reports[0], 'rb').read())
+    outputblobmonthly.set(open(reports[1], 'rb').read())
