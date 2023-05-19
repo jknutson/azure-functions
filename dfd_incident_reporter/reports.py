@@ -13,6 +13,7 @@ INCIDENT_CODES = {
     700: 'False Alarm & False Call.',
     800: 'Severe Weather & Natural Disaster Group.'
 }
+FIGSIZE=(11,8.5)
 
 # agg is a backend that is non-interactive; it can only write to files
 matplotlib.use('agg')
@@ -56,8 +57,48 @@ def generate_summary_report(df):
     report_path = 'incidents.pdf'
     fig=df['IncidentCategory'].value_counts().plot(kind='pie').get_figure()
     fig.savefig(report_path)
+    return reports
 
-    return [report_path]
+# incident_data should be an InputStream (e.g. from Azure BlobStorageTrigger), or path to a CSV file
+def generate_summary_report(df):
+    """Generate report(s) from dataframe
+
+    Parameters:
+    pandas.DataFrame: dataframe with incident data
+
+    Returns:
+    list of str: List of paths to generated report(s)
+    """
+
+    summary_report_path = 'incidents.pdf'
+    plot=df['IncidentCategory'].value_counts().plot(kind='pie', figsize=FIGSIZE)
+    plot.set(title='Dayton Fire Department - Calls Summary')
+    fig=plot.get_figure()
+    fig.savefig(summary_report_path)
+    return [summary_report_path]
+
+def generate_monthly_report(df):
+    """Generate monthly report(s) from datafram
+
+    Parameters:
+    pandas.DataFrame: dataframe with incident data
+
+    Returns:
+    list of str: List of paths to generated report(s)
+    """
+
+    month_report_path = 'incidents_month.pdf'
+    dg = df.groupby(df.IncidentDateTime.dt.month)['IncidentCategory'].value_counts().unstack().fillna(0)
+    # print(dg.head())
+    # print(dg.info())
+    plot = dg.plot.bar(stacked=True, figsize=FIGSIZE)
+    plot.set(title='Dayton Fire Department - Calls by Month',
+             xlabel='Month', ylabel='Number of Calls')
+    # plot.xaxis.set_major_locator(MonthLocator())
+    # plot.xaxis.set_major_formatter(DateFormatter('%b'))
+    fig=plot.get_figure()
+    fig.savefig(month_report_path)
+    return [month_report_path]
 
 def generate_monthly_report(df):
     """Generate monthly report(s) from datafram
