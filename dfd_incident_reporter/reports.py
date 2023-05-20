@@ -1,12 +1,17 @@
 import calendar
 import matplotlib
 import pandas as pd
+from PIL import Image
 
 # agg is a backend that is non-interactive; it can only write to files
 # matplotlib.use('agg')
 
 class Reporter:
-    FIGSIZE=(11,8.5)
+    # FIGSIZE_PX = (1920, 1080)
+    # # divide by DPI (300) to get figsize in inches
+    # FIGSIZE = tuple(t/300 for t in FIGSIZE_PX)
+    FIGSIZE = (11, 8.5)
+    # FIGSIZE = (10, 7)
     INCIDENT_CODES = {
         100: 'Fire Group.',
         200: 'Rupture / Explosion.',
@@ -63,9 +68,10 @@ class Reporter:
 
         summary_report_path = 'incidents_summary.png'
         plot=self.df['IncidentCategory'].value_counts().plot(kind='pie', figsize=self.FIGSIZE)
-        plot.set(title='Dayton Fire Department - Calls Summary')
+        plot.set(title='Dayton Fire Department - Calls Summary', ylabel='')
+        plot.title.set_size(20)
         fig=plot.get_figure()
-        fig.savefig(summary_report_path)
+        fig.savefig(summary_report_path, dpi=300)
         return [summary_report_path]
 
     def generate_monthly_report(self):
@@ -84,9 +90,24 @@ class Reporter:
         plot = dg.plot.bar(stacked=True, figsize=self.FIGSIZE)
         plot.set(title='Dayton Fire Department - Calls by Month',
                 xlabel='Month', ylabel='Number of Calls')
+        plot.title.set_size(20)
         fig=plot.get_figure()
-        fig.savefig(month_report_path)
+        fig.savefig(month_report_path, dpi=300)
         return [month_report_path]
+
+    def add_logo(self, original_image_path, logo_image_path, output_image_path):
+        original_image = Image.open(original_image_path)
+        logo_image = Image.open(logo_image_path)
+
+        logo_width, logo_height = logo_image.size
+        x, y = original_image.size
+        margin = 30
+        position_tr = (x - margin - logo_width, 0 + margin)
+        image_with_logo = Image.new('RGBA', (x, y), (0, 0, 0, 0))
+        image_with_logo.paste(original_image, (0, 0))
+        image_with_logo.paste(logo_image, position_tr, mask=logo_image)
+        image_with_logo.save(output_image_path, format='png')
+        return output_image_path
 
 if __name__ == "__main__":
     import sys
@@ -98,4 +119,8 @@ if __name__ == "__main__":
     #     reporter.generate_sanitized_csv(output_csv)
     reporter = Reporter(incident_data=incident_csv)
     reports = reporter.generate_reports()
+    logo_reports = []
+    for report in reports:
+        logo_reports.append(reporter.add_logo(report, 'dfd-logo-md.png', f"logo_{report}"))
     print(f"reports generated: {reports}")
+    print(f"logo reports generated: {logo_reports}")
