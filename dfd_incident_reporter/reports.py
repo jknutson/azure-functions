@@ -1,13 +1,12 @@
 import calendar
 import matplotlib
 import pandas as pd
-from matplotlib.ticker import NullFormatter
-from matplotlib.dates import MonthLocator, DateFormatter
 
 # agg is a backend that is non-interactive; it can only write to files
-matplotlib.use('agg')
+# matplotlib.use('agg')
 
 class Reporter:
+    FIGSIZE=(11,8.5)
     INCIDENT_CODES = {
         100: 'Fire Group.',
         200: 'Rupture / Explosion.',
@@ -18,10 +17,19 @@ class Reporter:
         700: 'False Alarm & False Call.',
         800: 'Severe Weather & Natural Disaster Group.'
     }
-    FIGSIZE=(11,8.5)
 
     def __init__(self, incident_data):
         self.incident_data = incident_data
+        use_columns = ['IncidentNumber', 'IncidentDate', 'IncidentTime', 'IncidentType']
+        df = pd.read_csv(self.incident_data, usecols=use_columns,
+                        parse_dates={'IncidentDateTime':['IncidentDate', 'IncidentTime']},
+                        date_format='%m/%d/%Y %H:%M:%S')
+        df['IncidentCode'] = df['IncidentType'].str.split().str[0]
+        df.dropna(subset=['IncidentType'], inplace=True)
+        df['IncidentSeries'] = (df['IncidentCode'].astype(int) / 100).astype(int) * 100
+        df['IncidentCategory'] = df['IncidentSeries'].map(self.INCIDENT_CODES)
+        self.df = df
+
 
     def generate_reports(self):
         """Generate report(s) from incident data
@@ -33,22 +41,17 @@ class Reporter:
         list of str: List of paths to generated report(s)
         """
 
-        use_columns = ['IncidentNumber', 'IncidentDate', 'IncidentTime', 'IncidentType']
-        df = pd.read_csv(self.incident_data, usecols=use_columns,
-                        parse_dates={'IncidentDateTime':['IncidentDate', 'IncidentTime']},
-                        date_format='%m/%d/%Y %H:%M:%S')
-        df['IncidentCode'] = df['IncidentType'].str.split().str[0]
-        df.dropna(subset=['IncidentType'], inplace=True)
-        df['IncidentSeries'] = (df['IncidentCode'].astype(int) / 100).astype(int) * 100
-        df['IncidentCategory'] = df['IncidentSeries'].map(self.INCIDENT_CODES)
-
         reports = []
-        reports.extend(self.generate_summary_report(df))
-        reports.extend(self.generate_monthly_report(df))
+        reports.extend(self.generate_summary_report())
+        reports.extend(self.generate_monthly_report())
 
         return reports
 
-    def generate_summary_report(self, df):
+    def generate_sanitized_csv(self, outfile):
+        self.df.to_csv(outfile)
+        return outfile
+
+    def generate_summary_report(self):
         """Generate summary report(s) from dataframe
 
         Parameters:
@@ -59,13 +62,13 @@ class Reporter:
         """
 
         summary_report_path = 'incidents_summary.pdf'
-        plot=df['IncidentCategory'].value_counts().plot(kind='pie', figsize=self.FIGSIZE)
+        plot=self.df['IncidentCategory'].value_counts().plot(kind='pie', figsize=self.FIGSIZE)
         plot.set(title='Dayton Fire Department - Calls Summary')
         fig=plot.get_figure()
         fig.savefig(summary_report_path)
         return [summary_report_path]
 
-    def generate_monthly_report(self, df):
+    def generate_monthly_report(self):
         """Generate monthly report(s) from dataframe
 
         Parameters:
@@ -75,16 +78,17 @@ class Reporter:
         list of str: List of paths to generated report(s)
         """
 
-        month_report_path = 'incidents_month.pdf'
-        dg = df.groupby(df.IncidentDateTime.dt.month)['IncidentCategory'].value_counts().unstack().fillna(0)
+        # month_report_path = 'incidents_month.pdf'
+        month_report_path = 'incidents_month.png'
+        dg = self.df.groupby(self.df.IncidentDateTime.dt.month)['IncidentCategory'].value_counts().unstack().fillna(0)
         dg.rename(index=lambda x: calendar.month_abbr[x], inplace=True)
-        # print(dg.head())
-        # print(dg.info())
         plot = dg.plot.bar(stacked=True, figsize=self.FIGSIZE)
         plot.set(title='Dayton Fire Department - Calls by Month',
                 xlabel='Month', ylabel='Number of Calls')
-        # plot.xaxis.set_major_locator(MonthLocator())
-        # plot.xaxis.set_major_formatter(DateFormatter('%b'))
+        # TODO: this _almost_ works, but distorts the chart
+        import matplotlib.image as mpimg
+        img = mpimg.imread('dfd-logo.png')
+        plot.imshow(img)
         fig=plot.get_figure()
         fig.savefig(month_report_path)
         return [month_report_path]
@@ -94,7 +98,9 @@ if __name__ == "__main__":
     incident_csv = '/Users/john.knutson/Downloads/incidents_2021.csv'
     if len(sys.argv) > 1:
         incident_csv = sys.argv[1]
+    # if len(sys.argv) > 2:
+    #     output_csv = sys.argv[2]
+    #     reporter.generate_sanitized_csv(output_csv)
     reporter = Reporter(incident_data=incident_csv)
     reports = reporter.generate_reports()
-    # reports = generate_reports(incident_data=incident_csv)
     print(f"reports generated: {reports}")
