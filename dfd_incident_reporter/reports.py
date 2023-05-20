@@ -13,14 +13,14 @@ class Reporter:
     FIGSIZE = (11, 8.5)
     # FIGSIZE = (10, 7)
     INCIDENT_CODES = {
-        100: 'Fire Group.',
-        200: 'Rupture / Explosion.',
+        100: 'Fire Group',
+        200: 'Rupture / Explosion',
         300: 'Rescue & Emergency Medical Service (EMS)',
         400: 'Hazardous Condition (no Fire)',
-        500: 'Service Call.',
-        600: 'Good Intent.',
-        700: 'False Alarm & False Call.',
-        800: 'Severe Weather & Natural Disaster Group.'
+        500: 'Service Call',
+        600: 'Good Intent',
+        700: 'False Alarm & False Call',
+        800: 'Severe Weather & Natural Disaster Group'
     }
 
     def __init__(self, incident_data):
@@ -56,6 +56,9 @@ class Reporter:
         self.df.to_csv(outfile)
         return outfile
 
+    def _my_autopct(self, pct):
+        return ('%1.1f%%' % pct) if pct > 2 else ''
+
     def generate_summary_report(self):
         """Generate summary report(s) from dataframe
 
@@ -67,7 +70,7 @@ class Reporter:
         """
 
         summary_report_path = 'incidents_summary.png'
-        plot=self.df['IncidentCategory'].value_counts().plot(kind='pie', figsize=self.FIGSIZE)
+        plot=self.df['IncidentCategory'].value_counts().plot(kind='pie', figsize=self.FIGSIZE, autopct=self._my_autopct)
         plot.set(title='Dayton Fire Department - Calls Summary', ylabel='')
         plot.title.set_size(20)
         fig=plot.get_figure()
