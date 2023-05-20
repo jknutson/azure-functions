@@ -61,7 +61,7 @@ class Reporter:
         list of str: List of paths to generated report(s)
         """
 
-        summary_report_path = 'incidents_summary.pdf'
+        summary_report_path = 'incidents_summary.png'
         plot=self.df['IncidentCategory'].value_counts().plot(kind='pie', figsize=self.FIGSIZE)
         plot.set(title='Dayton Fire Department - Calls Summary')
         fig=plot.get_figure()
@@ -78,17 +78,12 @@ class Reporter:
         list of str: List of paths to generated report(s)
         """
 
-        # month_report_path = 'incidents_month.pdf'
         month_report_path = 'incidents_month.png'
         dg = self.df.groupby(self.df.IncidentDateTime.dt.month)['IncidentCategory'].value_counts().unstack().fillna(0)
         dg.rename(index=lambda x: calendar.month_abbr[x], inplace=True)
         plot = dg.plot.bar(stacked=True, figsize=self.FIGSIZE)
         plot.set(title='Dayton Fire Department - Calls by Month',
                 xlabel='Month', ylabel='Number of Calls')
-        # TODO: this _almost_ works, but distorts the chart
-        import matplotlib.image as mpimg
-        img = mpimg.imread('dfd-logo.png')
-        plot.imshow(img)
         fig=plot.get_figure()
         fig.savefig(month_report_path)
         return [month_report_path]
